@@ -34,43 +34,44 @@ def extract_execution_providers(execution_provider_keys : List[ExecutionProvider
 
 
 def create_execution_providers(execution_device_id : str, execution_provider_keys : List[ExecutionProviderKey]) -> List[Any]:
-	execution_providers = extract_execution_providers(execution_provider_keys)
-	execution_providers_with_options : List[Any] = []
+	# execution_providers = extract_execution_providers(execution_provider_keys)
+	# execution_providers_with_options : List[Any] = []
 
-	for execution_provider in execution_providers:
-		if execution_provider == 'CUDAExecutionProvider':
-			execution_providers_with_options.append((execution_provider,
-			{
-				'device_id': execution_device_id,
-				'cudnn_conv_algo_search': 'EXHAUSTIVE' if use_exhaustive() else 'DEFAULT'
-			}))
-		if execution_provider == 'TensorrtExecutionProvider':
-			execution_providers_with_options.append((execution_provider,
-			{
-				'device_id': execution_device_id,
-				'trt_engine_cache_enable': True,
-				'trt_engine_cache_path': '.caches',
-				'trt_timing_cache_enable': True,
-				'trt_timing_cache_path': '.caches',
-				'trt_builder_optimization_level': 5
-			}))
-		if execution_provider == 'OpenVINOExecutionProvider':
-			execution_providers_with_options.append((execution_provider,
-			{
-				'device_type': 'GPU.' + execution_device_id,
-				'precision': 'FP32'
-			}))
-		if execution_provider in [ 'DmlExecutionProvider', 'ROCMExecutionProvider' ]:
-			execution_providers_with_options.append((execution_provider,
-			{
-				'device_id': execution_device_id
-			}))
-		if execution_provider == 'CoreMLExecutionProvider':
-			execution_providers_with_options.append(execution_provider)
+	# for execution_provider in execution_providers:
+	# 	if execution_provider == 'CUDAExecutionProvider':
+	# 		execution_providers_with_options.append((execution_provider,
+	# 		{
+	# 			'device_id': execution_device_id,
+	# 			'cudnn_conv_algo_search': 'EXHAUSTIVE' if use_exhaustive() else 'DEFAULT'
+	# 		}))
+	# 	if execution_provider == 'TensorrtExecutionProvider':
+	# 		execution_providers_with_options.append((execution_provider,
+	# 		{
+	# 			'device_id': execution_device_id,
+	# 			'trt_engine_cache_enable': True,
+	# 			'trt_engine_cache_path': '.caches',
+	# 			'trt_timing_cache_enable': True,
+	# 			'trt_timing_cache_path': '.caches',
+	# 			'trt_builder_optimization_level': 5
+	# 		}))
+	# 	if execution_provider == 'OpenVINOExecutionProvider':
+	# 		execution_providers_with_options.append((execution_provider,
+	# 		{
+	# 			'device_type': 'GPU.' + execution_device_id,
+	# 			'precision': 'FP32'
+	# 		}))
+	# 	if execution_provider in [ 'DmlExecutionProvider', 'ROCMExecutionProvider' ]:
+	# 		execution_providers_with_options.append((execution_provider,
+	# 		{
+	# 			'device_id': execution_device_id
+	# 		}))
+	# 	if execution_provider == 'CoreMLExecutionProvider':
+	# 		execution_providers_with_options.append(execution_provider)
 
-	if 'CPUExecutionProvider' in execution_providers:
-		execution_providers_with_options.append('CPUExecutionProvider')
-	return execution_providers_with_options
+	# if 'CPUExecutionProvider' in execution_providers:
+	# 	execution_providers_with_options.append('CPUExecutionProvider')
+	# return execution_providers_with_options
+    return ['CUDAExecutionProvider','CPUExecutionProvider']
 
 
 def use_exhaustive() -> bool:
