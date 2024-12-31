@@ -65,28 +65,110 @@ def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fp
 	return run_ffmpeg(commands).returncode == 0
 
 
-def merge_video(target_path : str, output_video_resolution : str, output_video_fps : Fps) -> bool:
-	temp_video_fps = restrict_video_fps(target_path, output_video_fps)
-	temp_file_path = get_temp_file_path(target_path)
-	temp_frames_pattern = get_temp_frames_pattern(target_path, '%08d')
-	commands = [ '-r', str(temp_video_fps), '-i', temp_frames_pattern, '-s', str(output_video_resolution), '-c:v', state_manager.get_item('output_video_encoder') ]
+# def merge_video(target_path : str, output_video_resolution : str, output_video_fps : Fps) -> bool:
+# 	temp_video_fps = restrict_video_fps(target_path, output_video_fps)
+# 	temp_file_path = get_temp_file_path(target_path)
+# 	temp_frames_pattern = get_temp_frames_pattern(target_path, '%08d')
+# 	commands = [ '-r', str(temp_video_fps), '-i', temp_frames_pattern, '-s', str(output_video_resolution), '-c:v', state_manager.get_item('output_video_encoder') ]
+#
+# 	if state_manager.get_item('output_video_encoder') in [ 'libx264', 'libx265' ]:
+# 		output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
+# 		commands.extend([ '-crf', str(output_video_compression), '-preset', state_manager.get_item('output_video_preset') ])
+# 	if state_manager.get_item('output_video_encoder') in [ 'libvpx-vp9' ]:
+# 		output_video_compression = round(63 - (state_manager.get_item('output_video_quality') * 0.63))
+# 		commands.extend([ '-crf', str(output_video_compression) ])
+# 	if state_manager.get_item('output_video_encoder') in [ 'h264_nvenc', 'hevc_nvenc' ]:
+# 		output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
+# 		commands.extend([ '-cq', str(output_video_compression), '-preset', map_nvenc_preset(state_manager.get_item('output_video_preset')) ])
+# 	if state_manager.get_item('output_video_encoder') in [ 'h264_amf', 'hevc_amf' ]:
+# 		output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
+# 		commands.extend([ '-qp_i', str(output_video_compression), '-qp_p', str(output_video_compression), '-quality', map_amf_preset(state_manager.get_item('output_video_preset')) ])
+# 	if state_manager.get_item('output_video_encoder') in [ 'h264_videotoolbox', 'hevc_videotoolbox' ]:
+# 		commands.extend([ '-q:v', str(state_manager.get_item('output_video_quality')) ])
+# 	commands.extend([ '-vf', 'framerate=fps=' + str(output_video_fps), '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-y', temp_file_path ])
+# 	return run_ffmpeg(commands).returncode == 0
 
-	if state_manager.get_item('output_video_encoder') in [ 'libx264', 'libx265' ]:
-		output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
-		commands.extend([ '-crf', str(output_video_compression), '-preset', state_manager.get_item('output_video_preset') ])
-	if state_manager.get_item('output_video_encoder') in [ 'libvpx-vp9' ]:
-		output_video_compression = round(63 - (state_manager.get_item('output_video_quality') * 0.63))
-		commands.extend([ '-crf', str(output_video_compression) ])
-	if state_manager.get_item('output_video_encoder') in [ 'h264_nvenc', 'hevc_nvenc' ]:
-		output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
-		commands.extend([ '-cq', str(output_video_compression), '-preset', map_nvenc_preset(state_manager.get_item('output_video_preset')) ])
-	if state_manager.get_item('output_video_encoder') in [ 'h264_amf', 'hevc_amf' ]:
-		output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
-		commands.extend([ '-qp_i', str(output_video_compression), '-qp_p', str(output_video_compression), '-quality', map_amf_preset(state_manager.get_item('output_video_preset')) ])
-	if state_manager.get_item('output_video_encoder') in [ 'h264_videotoolbox', 'hevc_videotoolbox' ]:
-		commands.extend([ '-q:v', str(state_manager.get_item('output_video_quality')) ])
-	commands.extend([ '-vf', 'framerate=fps=' + str(output_video_fps), '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-y', temp_file_path ])
-	return run_ffmpeg(commands).returncode == 0
+def merge_video(target_path: str, output_video_resolution: str, output_video_fps: Fps) -> Tuple[bool, Optional[str]]:
+    try:
+        logger.debug("Starting video merging process", __name__)
+
+        # Step 1: Restrict video FPS
+        temp_video_fps = restrict_video_fps(target_path, output_video_fps)
+        logger.debug(f"Restricted video FPS to {temp_video_fps}", __name__)
+
+        # Step 2: Get temporary file path
+        temp_file_path = get_temp_file_path(target_path)
+        logger.debug(f"Temporary file path set to {temp_file_path}", __name__)
+
+        # Step 3: Get temporary frames pattern
+        temp_frames_pattern = get_temp_frames_pattern(target_path, '%08d')
+        logger.debug(f"Temporary frames pattern set to {temp_frames_pattern}", __name__)
+
+        # Step 4: Build FFmpeg commands
+        commands = [
+            '-r', str(temp_video_fps),
+            '-i', temp_frames_pattern,
+            '-s', str(output_video_resolution),
+            '-c:v', state_manager.get_item('output_video_encoder')
+        ]
+
+        # Add encoder-specific options
+        encoder = state_manager.get_item('output_video_encoder')
+        if encoder in ['libx264', 'libx265']:
+            output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
+            commands.extend(
+                ['-crf', str(output_video_compression), '-preset', state_manager.get_item('output_video_preset')])
+            logger.debug(
+                f"Using CRF {output_video_compression} and preset {state_manager.get_item('output_video_preset')} for {encoder}",
+                __name__)
+
+        elif encoder == 'libvpx-vp9':
+            output_video_compression = round(63 - (state_manager.get_item('output_video_quality') * 0.63))
+            commands.extend(['-crf', str(output_video_compression)])
+            logger.debug(f"Using CRF {output_video_compression} for libvpx-vp9", __name__)
+
+        elif encoder in ['h264_nvenc', 'hevc_nvenc']:
+            output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
+            commands.extend(['-cq', str(output_video_compression), '-preset',
+                             map_nvenc_preset(state_manager.get_item('output_video_preset'))])
+            logger.debug(
+                f"Using CQ {output_video_compression} and preset {map_nvenc_preset(state_manager.get_item('output_video_preset'))} for {encoder}",
+                __name__)
+
+        elif encoder in ['h264_amf', 'hevc_amf']:
+            output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
+            commands.extend(['-qp_i', str(output_video_compression), '-qp_p', str(output_video_compression), '-quality',
+                             map_amf_preset(state_manager.get_item('output_video_preset'))])
+            logger.debug(
+                f"Using QP {output_video_compression} and quality {map_amf_preset(state_manager.get_item('output_video_preset'))} for {encoder}",
+                __name__)
+
+        elif encoder in ['h264_videotoolbox', 'hevc_videotoolbox']:
+            commands.extend(['-q:v', str(state_manager.get_item('output_video_quality'))])
+            logger.debug(f"Using quality {state_manager.get_item('output_video_quality')} for {encoder}", __name__)
+
+        # Add common FFmpeg options
+        commands.extend([
+            '-vf', f'framerate=fps={output_video_fps}',
+            '-pix_fmt', 'yuv420p',
+            '-colorspace', 'bt709',
+            '-y', temp_file_path
+        ])
+        logger.debug(f"FFmpeg command: {' '.join(commands)}", __name__)
+
+        # Step 5: Run FFmpeg
+        result = run_ffmpeg(commands)
+        if result.returncode != 0:
+            logger.error(f"FFmpeg returned non-zero exit code: {result.returncode}, stderr: {result.stderr.decode()}",
+                         __name__)
+            return False, f"FFmpeg failed with exit code {result.returncode}"
+
+        logger.debug("Video merging completed successfully", __name__)
+        return True, None
+
+    except Exception as e:
+        logger.exception("An unexpected error occurred during video merging", __name__)
+        return False, str(e)
 
 
 def concat_video(output_path : str, temp_output_paths : List[str]) -> bool:
