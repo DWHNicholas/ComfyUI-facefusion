@@ -390,24 +390,9 @@ def process_video(start_time : float) -> ErrorCode:
 		logger.error(wording.get('temp_frames_not_found'), __name__)
 		process_manager.end()
 		return 1
-	# merge video
-	# logger.info(wording.get('merging_video').format(resolution = state_manager.get_item('output_video_resolution'), fps = state_manager.get_item('output_video_fps')), __name__)
-	# if merge_video(state_manager.get_item('target_path'), state_manager.get_item('output_video_resolution'), state_manager.get_item('output_video_fps')):
-	# 	logger.debug(wording.get('merging_video_succeed'), __name__)
-	# else:
-	# 	if is_process_stopping():
-	# 		process_manager.end()
-	# 		return 4
-	# 	logger.error(wording.get('merging_video_failed'), __name__)
-	# 	process_manager.end()
-	# 	return 1
-    logger.info(wording.get('merging_video').format(resolution=state_manager.get_item('output_video_resolution'),
-                                                    fps=state_manager.get_item('output_video_fps')), __name__)
-    success, error_message = merge_video(
-        state_manager.get_item('target_path'),
-        state_manager.get_item('output_video_resolution'),
-        state_manager.get_item('output_video_fps')
-    )
+
+    logger.info(wording.get('merging_video').format(resolution=state_manager.get_item('output_video_resolution'),fps=state_manager.get_item('output_video_fps')), __name__)
+    success, error_message = merge_video(state_manager.get_item('target_path'),state_manager.get_item('output_video_resolution'),state_manager.get_item('output_video_fps'))
 
     if success:
         logger.debug(wording.get('merging_video_succeed'), __name__)
