@@ -88,7 +88,7 @@ def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fp
 # 	commands.extend([ '-vf', 'framerate=fps=' + str(output_video_fps), '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-y', temp_file_path ])
 # 	return run_ffmpeg(commands).returncode == 0
 
-def merge_video(target_path: str, output_video_resolution: str, output_video_fps: Fps) -> Tuple[bool, Optional[str]]:
+def merge_video(target_path: str, output_video_resolution: str, output_video_fps: Fps):
     try:
         logger.debug("Starting video merging process", __name__)
 
