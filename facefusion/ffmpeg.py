@@ -159,8 +159,7 @@ def merge_video(target_path: str, output_video_resolution: str, output_video_fps
         # Step 5: Run FFmpeg
         result = run_ffmpeg(commands)
         if result.returncode != 0:
-            logger.error(f"FFmpeg returned non-zero exit code: {result.returncode}, stderr: {result.stderr.decode()}",
-                         __name__)
+            logger.error(f"FFmpeg returned non-zero exit code: {result.returncode}",__name__)
             return False, f"FFmpeg failed with exit code {result.returncode}"
 
         logger.debug("Video merging completed successfully", __name__)
