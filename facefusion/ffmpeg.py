@@ -14,22 +14,26 @@ from facefusion.vision import restrict_video_fps
 
 
 def run_ffmpeg(args : List[str]) -> subprocess.Popen[bytes]:
-	commands = [ shutil.which('ffmpeg'), '-hide_banner', '-loglevel', 'error' ]
-	commands.extend(args)
-	process = subprocess.Popen(commands, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
+    try:
+        commands = [ shutil.which('ffmpeg'), '-hide_banner', '-loglevel', 'error' ]
+        commands.extend(args)
+        process = subprocess.Popen(commands, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
 
-	while process_manager.is_processing():
-		try:
-			if state_manager.get_item('log_level') == 'debug':
-				log_debug(process)
-			process.wait(timeout = 0.5)
-		except subprocess.TimeoutExpired:
-			continue
-		return process
+        while process_manager.is_processing():
+            try:
+                if state_manager.get_item('log_level') == 'debug':
+                    log_debug(process)
+                process.wait(timeout = 0.5)
+            except subprocess.TimeoutExpired:
+                continue
+            return process
 
-	if process_manager.is_stopping():
-		process.terminate()
-	return process
+        if process_manager.is_stopping():
+            process.terminate()
+        return process
+    except Exception as e:
+        logger.error(e, __name__)
+        return 1
 
 
 def open_ffmpeg(args : List[str]) -> subprocess.Popen[bytes]:
@@ -90,19 +94,19 @@ def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fp
 
 def merge_video(target_path: str, output_video_resolution: str, output_video_fps: Fps):
     try:
-        logger.debug("Starting video merging process", __name__)
+        logger.info("Starting video merging process", __name__)
 
         # Step 1: Restrict video FPS
         temp_video_fps = restrict_video_fps(target_path, output_video_fps)
-        logger.debug(f"Restricted video FPS to {temp_video_fps}", __name__)
+        logger.info(f"Restricted video FPS to {temp_video_fps}", __name__)
 
         # Step 2: Get temporary file path
         temp_file_path = get_temp_file_path(target_path)
-        logger.debug(f"Temporary file path set to {temp_file_path}", __name__)
+        logger.info(f"Temporary file path set to {temp_file_path}", __name__)
 
         # Step 3: Get temporary frames pattern
         temp_frames_pattern = get_temp_frames_pattern(target_path, '%08d')
-        logger.debug(f"Temporary frames pattern set to {temp_frames_pattern}", __name__)
+        logger.info(f"Temporary frames pattern set to {temp_frames_pattern}", __name__)
 
         # Step 4: Build FFmpeg commands
         commands = [
@@ -117,21 +121,21 @@ def merge_video(target_path: str, output_video_resolution: str, output_video_fps
         if encoder in ['libx264', 'libx265']:
             output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
             commands.extend(
-                ['-crf', str(output_video_compression), '-preset', state_manager.get_item('output_video_preset')])
-            logger.debug(
+                ['-crf', str(output_video_compression), '-preset', state_manager.get_item('output_video_preset')])9
+            logger.info(
                 f"Using CRF {output_video_compression} and preset {state_manager.get_item('output_video_preset')} for {encoder}",
                 __name__)
 
         elif encoder == 'libvpx-vp9':
             output_video_compression = round(63 - (state_manager.get_item('output_video_quality') * 0.63))
             commands.extend(['-crf', str(output_video_compression)])
-            logger.debug(f"Using CRF {output_video_compression} for libvpx-vp9", __name__)
+            logger.info(f"Using CRF {output_video_compression} for libvpx-vp9", __name__)
 
         elif encoder in ['h264_nvenc', 'hevc_nvenc']:
             output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
             commands.extend(['-cq', str(output_video_compression), '-preset',
                              map_nvenc_preset(state_manager.get_item('output_video_preset'))])
-            logger.debug(
+            logger.info(
                 f"Using CQ {output_video_compression} and preset {map_nvenc_preset(state_manager.get_item('output_video_preset'))} for {encoder}",
                 __name__)
 
@@ -139,13 +143,13 @@ def merge_video(target_path: str, output_video_resolution: str, output_video_fps
             output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
             commands.extend(['-qp_i', str(output_video_compression), '-qp_p', str(output_video_compression), '-quality',
                              map_amf_preset(state_manager.get_item('output_video_preset'))])
-            logger.debug(
+            logger.info(
                 f"Using QP {output_video_compression} and quality {map_amf_preset(state_manager.get_item('output_video_preset'))} for {encoder}",
                 __name__)
 
         elif encoder in ['h264_videotoolbox', 'hevc_videotoolbox']:
             commands.extend(['-q:v', str(state_manager.get_item('output_video_quality'))])
-            logger.debug(f"Using quality {state_manager.get_item('output_video_quality')} for {encoder}", __name__)
+            logger.info(f"Using quality {state_manager.get_item('output_video_quality')} for {encoder}", __name__)
 
         # Add common FFmpeg options
         commands.extend([
@@ -154,15 +158,16 @@ def merge_video(target_path: str, output_video_resolution: str, output_video_fps
             '-colorspace', 'bt709',
             '-y', temp_file_path
         ])
-        logger.debug(f"FFmpeg command: {' '.join(commands)}", __name__)
+        logger.info(f"FFmpeg command: {' '.join(commands)}", __name__)
 
         # Step 5: Run FFmpeg
         result = run_ffmpeg(commands)
+
         if result.returncode != 0:
             logger.error(f"FFmpeg returned non-zero exit code: {result.returncode}",__name__)
             return False, f"FFmpeg failed with exit code {result.returncode}"
 
-        logger.debug("Video merging completed successfully", __name__)
+        logger.info("Video merging completed successfully", __name__)
         return True, None
 
     except Exception as e:
