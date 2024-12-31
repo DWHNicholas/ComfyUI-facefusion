@@ -121,7 +121,7 @@ def merge_video(target_path: str, output_video_resolution: str, output_video_fps
         if encoder in ['libx264', 'libx265']:
             output_video_compression = round(51 - (state_manager.get_item('output_video_quality') * 0.51))
             commands.extend(
-                ['-crf', str(output_video_compression), '-preset', state_manager.get_item('output_video_preset')])9
+                ['-crf', str(output_video_compression), '-preset', state_manager.get_item('output_video_preset')])
             logger.info(
                 f"Using CRF {output_video_compression} and preset {state_manager.get_item('output_video_preset')} for {encoder}",
                 __name__)
